@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA cache</title>
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+<ul id="pokemon">
+</ul>
+<script>
+    let $pokemon = document.querySelector('#pokemon');
+
+    function fetchAndCachePokemon() {
+        fetch('https://pokeapi.co/api/v2/pokemon?limit=10&offset=0')
+            .then((response) => response.json())
+            .then((data) => {
+                if ('caches' in window) {
+                    caches.open('pokemon-cache').then(function(cache) {
+                        cache.put('pokemon-list', new Response(JSON.stringify(data)));
+                    });
+                }
+
+                $pokemon.innerHTML = data.results.map((pokemon) => {
+                    return `<li>${pokemon.name}</li>`;
+                }).join('');
+            })
+            .catch((error) => {
+                console.error('Error fetching data:', error);
+            });
+    }
+
+    if ('caches' in window) {
+        caches.open('pokemon-cache').then(function(cache) {
+            cache.match('pokemon-list').then(function(response) {
+                if (response) {
+                    response.json().then(function(data) {
+                        $pokemon.innerHTML = data.results.map((pokemon) => {
+                            return `<li>${pokemon.name}</li>`;
+                        }).join('');
+                    });
+                } else {
+                    fetchAndCachePokemon();
+                }
+            });
+        });
+    } else {
+        fetchAndCachePokemon();
+    }
+</script>
+</body>
+</html>
